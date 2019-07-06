@@ -1,0 +1,9 @@
+test
+
+<code>
+! main
+<%= include "file1" %>
+! main again
+</code>
+
+test

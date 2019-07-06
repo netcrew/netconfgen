@@ -1,0 +1,4 @@
+<code>
+foo: <%= @foo %>
+bar: <%= @bar %>
+</code>

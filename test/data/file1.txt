@@ -1,0 +1,6 @@
+This is a wiki file
+
+<code>
+! this is a code module
+</code>
+Some other comments
