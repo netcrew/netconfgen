@@ -9,12 +9,14 @@ require 'pp'
 require 'yaml'
 require 'json'
 
-#CONFIG_FILE = "/etc/netconfgen.yaml"
-CONFIG_FILE = "netconfgen.yaml"
+CONFIG_FILE = ["/etc/netconfgen.yaml", "~/.netconfgen.yaml", "netconfgen.yaml"]
 config = {}
-if File.exists?(CONFIG_FILE)
-  config = YAML::load_file(CONFIG_FILE)
-  config = config.each_with_object({}) { |(k,v),memo| memo[k.to_sym] = v }
+CONFIG_FILE.each do |fname|
+  fname = File.expand_path(fname)
+  if File.exists?(fname)
+    config = YAML::load_file(fname)
+    config = config.each_with_object({}) { |(k,v),memo| memo[k.to_sym] = v }
+  end
 end
 
 config[:variables] ||= {}
@@ -64,6 +66,10 @@ log.formatter = lambda do |s, d, p, m|
   "#{d.strftime('%Y-%m-%d %H:%M:%S.%3N')} | #{s.ljust(5)} | #{m}\n"
 end
 config[:logger] = log
+
+if config[:verbose]
+  PP.pp(config, STDERR)
+end
 
 if !config[:listen]
   STDERR.puts "Rendering block #{config[:name]}" if config[:verbose]
