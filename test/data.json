@@ -1,0 +1,10 @@
+{
+  "message": "Hello, World!",
+  "list": [
+    1, 2, 3
+  ],
+  "map": {
+    "A": 1,
+    "B": 2
+  }
+}

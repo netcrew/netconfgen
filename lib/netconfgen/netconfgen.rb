@@ -16,12 +16,9 @@ module NetConfGen
 
     def render
       t = ERB.new(@code)
-      puts "template for #{@name} is #{@code}"
       str = t.result(@blockengine.context.instance_eval { binding })
-      puts "Rendering #{@name} as #{str}"
       return str
     end
-
 
     def to_s
       self.render
@@ -44,6 +41,9 @@ module NetConfGen
     attr_reader :context
     def initialize(basepath)
       @basepath = basepath
+      if !File.directory?(basepath)
+        raise "Basepath #{basepath} does not exists"
+      end
       @suffix = '.txt'
 
       @blocks = {}
@@ -54,8 +54,6 @@ module NetConfGen
     def set(key, value)
       @context.instance_variable_set("@" + key, value)
     end
-
-
 
     def load(name)
       if @blocks[name]
@@ -69,7 +67,7 @@ module NetConfGen
         f.each_line do |line|
           if line == "<code>\n"
             code_started = true
-          elsif line == "</code>\n"
+          elsif line == "</code>\n" || line == "</code>"
             code_started = false
           elsif code_started == true
             code += line

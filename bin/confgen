@@ -6,10 +6,19 @@ require 'logger'
 require 'optparse'
 require 'netconfgen'
 require 'pp'
+require 'yaml'
+require 'json'
 
+#CONFIG_FILE = "/etc/netconfgen.yaml"
+CONFIG_FILE = "netconfgen.yaml"
 config = {}
-config[:variables] = {}
-config[:loglevel] = 'INFO'
+if File.exists?(CONFIG_FILE)
+  config = YAML::load_file(CONFIG_FILE)
+  config = config.each_with_object({}) { |(k,v),memo| memo[k.to_sym] = v }
+end
+
+config[:variables] ||= {}
+config[:root] ||= 'test/data'
 
 # Defaults
 op = OptionParser.new do |o|
@@ -22,14 +31,20 @@ op = OptionParser.new do |o|
       config[:variables][m[1]] = m[2]
     end
   end
+  o.on('--json=[VARIABLE=FILE]', 'Load json into a variable') do |arg|
+    if m = arg.match(/(.+?)=(.+)/)
+      data = File.read(m[2])
+      config[:variables][m[1]] = JSON.parse(data)
+    end
+  end
   o.on('-a', '--address ADDRESS', String,
     'Address to listen on (default: 0.0.0.0)') do |address|
     config[:address] = address
   end
-  o.on('-p', '--port PORT', Integer,
-    'Port to listen on (default: 69)') do |port|
+  o.on('-h', '--http PORT', Integer,
+    'Port to listen on for http (default: 8080)') do |port|
     abort 'Invalid port' if port < 1 || port > 65535
-    config[:port] = port
+    config[:http] = http
   end
   o.on('-v', '--verbose', 'Enable verbose output') do
     config[:verbose] = true
@@ -52,7 +67,7 @@ config[:logger] = log
 
 if !config[:listen]
   STDERR.puts "Rendering block #{config[:name]}" if config[:verbose]
-  br = NetConfGen::BlockEngine.new('test/data')
+  br = NetConfGen::BlockEngine.new(config[:root])
 
   config[:variables].each do |k, v|
     br.set(k, v)
