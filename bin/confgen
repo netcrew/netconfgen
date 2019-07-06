@@ -16,6 +16,7 @@ CONFIG_FILE.each do |fname|
   if File.exists?(fname)
     config = YAML::load_file(fname)
     config = config.each_with_object({}) { |(k,v),memo| memo[k.to_sym] = v }
+    break
   end
 end
 
