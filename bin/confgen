@@ -1,0 +1,77 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift File.join(File.dirname(__FILE__), '..', 'lib')
+
+require 'logger'
+require 'optparse'
+require 'netconfgen'
+require 'pp'
+
+config = {}
+config[:variables] = {}
+config[:loglevel] = 'INFO'
+
+# Defaults
+op = OptionParser.new do |o|
+  o.banner = "Usage: #{$PROGRAM_NAME} [OPTIONS] MAIN_BLOCK_NAME"
+  o.on('-l', '--listen', 'Run a listening server instead') do
+    config[:listen] = true
+  end
+  o.on('-o [OPTION]', 'Pass a template variable') do |arg|
+    if m = arg.match(/(.+?)=(.+)/)
+      config[:variables][m[1]] = m[2]
+    end
+  end
+  o.on('-a', '--address ADDRESS', String,
+    'Address to listen on (default: 0.0.0.0)') do |address|
+    config[:address] = address
+  end
+  o.on('-p', '--port PORT', Integer,
+    'Port to listen on (default: 69)') do |port|
+    abort 'Invalid port' if port < 1 || port > 65535
+    config[:port] = port
+  end
+  o.on('-v', '--verbose', 'Enable verbose output') do
+    config[:verbose] = true
+  end
+end
+
+config[:name] = op.parse!.first
+abort 'Last argument must be the main block name' unless config[:name]
+
+if config[:listen] && config[:port] < 1024 && !Process.euid.zero?
+  abort 'Please run tftpd as root via sudo!'
+end
+
+log = Logger.new(STDOUT)
+log.level = config[:verbose] ? "DEBUG" : "INFO"
+log.formatter = lambda do |s, d, p, m|
+  "#{d.strftime('%Y-%m-%d %H:%M:%S.%3N')} | #{s.ljust(5)} | #{m}\n"
+end
+config[:logger] = log
+
+if !config[:listen]
+  STDERR.puts "Rendering block #{config[:name]}" if config[:verbose]
+  br = NetConfGen::BlockEngine.new('test/data')
+
+  config[:variables].each do |k, v|
+    br.set(k, v)
+  end
+  block = br.load(config[:name])
+  puts block.render
+  exit(0)
+end
+
+begin
+  log.info "Serving from and to #{config[:path]}"
+  srv = TFTP::Server::RWSimple.new(config[:path], config)
+  srv.run!
+rescue SignalException => e
+  puts if e.is_a? Interrupt
+  srv.stop
+end
+
+if Thread.list.length > 1
+  log.info 'Waiting for outstanding connections'
+  Thread.stop
+end
