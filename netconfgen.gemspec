@@ -8,9 +8,10 @@ Gem::Specification.new do |s|
 
   s.summary       = %q{Template based config generation}
   s.files         = `git ls-files`.split("\n")
-  s.executables   = ['ncg']
+  s.executables   = ['confgen']
   s.test_files    = s.files.grep(%r{^test/})
   s.require_paths = ['lib']
+  s.authors       = "Juho Mäkinen juho.makinen@gmail.com"
 
   s.required_ruby_version = '>= 2.1.0'
 

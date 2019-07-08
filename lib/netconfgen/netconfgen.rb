@@ -35,6 +35,29 @@ module NetConfGen
       block = @blockengine.load(name)
       return block.render
     end
+
+    # Creates an array of individual ports from a port range string
+    def portrange(portrange)
+      if m = portrange.match(/((?:Gi|Fa|Te)(?:[0-9]+\/)+)(\d+)(?:-(\d+))?/) # eg. Gi1/0/27-28 or Gi1/0/27
+        ports = []
+        if m[3]
+          (m[2]..m[3]).each do |i|
+            ports << (m[1] + i)
+          end
+        else
+          ports << (m[1] + m[2])
+        end
+
+        return ports
+      elsif m = portrange.match(/(Gi|Fa|Te)\[(\d)(\d)\](\/\d+)/) # eg. Gi[34]/1
+        ports = []
+        (m[2]..m[3]).each do |i|
+          ports << (m[1] + i + m[4])
+        end
+        return ports
+      end
+      return []
+    end
   end
 
   class BlockEngine
