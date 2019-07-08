@@ -89,9 +89,9 @@ module NetConfGen
     end
 
     def megaexcel(name)
-      url = @settings[:megaexcel][:url]
-      name_field = @settings[:megaexcel][:name_field]
-      column_definition_row_number = @settings[:megaexcel][:column_definition_row_number]
+      url = @settings["megaexcel"]["url"]
+      name_field = @settings["megaexcel"]["name_field"]
+      column_definition_row_number = @settings["megaexcel"]["column_definition_row_number"]
 
       ret = Net::HTTP.get(URI.parse(url))
       data = JSON.parse(ret)
@@ -101,20 +101,20 @@ module NetConfGen
     end
 
     def megaexcel_vlans(data)
-      vlans_column_name = @settings[:megaexcel][:vlans_column_name]
+      vlans_column_name = @settings["megaexcel"]["vlans_column_name"]
       str = data[vlans_column_name]
       vlans = []
       str.each_line do |line|
         if m = line.match(/((?:Fa|Gi|Te)[^ ]+).+?vlan\s?(\d+)/)
-          puts "found vlan #{m[2]} mapped to port(s) #{m[1]}"
           vlans << {
-            :ports => m[1],
-            :vlan => m[2],
-            :description => line,
+            "ports" => m[1],
+            "vlan" => m[2],
+            "description" => line.chomp.strip,
           }
+        else
+          # Warning. unknown vlan setup #{line}
         end
       end
-
       return vlans
     end
   end

@@ -11,6 +11,7 @@ require 'json'
 
 CONFIG_FILE = ["/etc/netconfgen.yaml", "~/.netconfgen.yaml", "netconfgen.yaml"]
 config = {}
+
 CONFIG_FILE.each do |fname|
   fname = File.expand_path(fname)
   if File.exists?(fname)
