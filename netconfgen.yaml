@@ -2,3 +2,4 @@ verbose: true
 variables:
   foo: 2
   test: test
+settings:

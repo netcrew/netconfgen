@@ -2,7 +2,10 @@
 #
 
 require 'erb'
-
+require 'net/http'
+require 'uri'
+require 'json'
+require 'pp'
 
 module NetConfGen
 
@@ -27,8 +30,9 @@ module NetConfGen
   end
 
   class BlockContext
-    def initialize(blockengine)
+    def initialize(blockengine, settings=nil)
       @blockengine = blockengine
+      @settings = settings
     end
 
     def include(name)
@@ -58,12 +62,68 @@ module NetConfGen
       end
       return []
     end
+
+    def megaexcel_find_row_by_column_value(data, column_definition_row_number, column_name, column_value)
+
+      # The 3rd row is known to be containing the column names
+      columns = data["values"][column_definition_row_number]
+
+      # Set i to the INDEX of the column which we are searching
+      i = columns.index(column_name)
+      if i == nil
+        raise "Column #{column_name} not found from megaexcel"
+      end
+
+      # Find the row where the INDEX column contains the value we are looking for
+      row = data["values"].find do |x|
+        x[i] == column_value
+      end
+
+      # Convert the indexed row into an object which keys are the column names
+      obj = {}
+      columns.each_with_index do |key, j|
+        obj[key] = row[j]
+      end
+
+      return obj
+    end
+
+    def megaexcel(name)
+      url = @settings[:megaexcel][:url]
+      name_field = @settings[:megaexcel][:name_field]
+      column_definition_row_number = @settings[:megaexcel][:column_definition_row_number]
+
+      ret = Net::HTTP.get(URI.parse(url))
+      data = JSON.parse(ret)
+
+      row = megaexcel_find_row_by_column_value(data, column_definition_row_number, name_field, name)
+      pp row
+    end
+
+    def megaexcel_vlans(data)
+      vlans_column_name = @settings[:megaexcel][:vlans_column_name]
+      str = data[vlans_column_name]
+      vlans = []
+      str.each_line do |line|
+        if m = line.match(/((?:Fa|Gi|Te)[^ ]+).+?vlan\s?(\d+)/)
+          puts "found vlan #{m[2]} mapped to port(s) #{m[1]}"
+          vlans << {
+            :ports => m[1],
+            :vlan => m[2],
+            :description => line,
+          }
+        end
+      end
+
+      return vlans
+    end
   end
 
   class BlockEngine
-    attr_reader :context
-    def initialize(basepath)
+    attr_reader :context, :settings
+    def initialize(basepath, settings=nil)
       @basepath = basepath
+      @settings = settings
       if !File.directory?(basepath)
         raise "Basepath #{basepath} does not exists"
       end
@@ -71,7 +131,7 @@ module NetConfGen
 
       @blocks = {}
 
-      @context = BlockContext.new(self)
+      @context = BlockContext.new(self, @settings)
     end
 
     def set(key, value)

@@ -61,6 +61,11 @@ if config[:listen] && config[:port] < 1024 && !Process.euid.zero?
   abort 'Please run tftpd as root via sudo!'
 end
 
+
+if config[:verbose]
+  PP.pp(config, STDERR)
+end
+
 log = Logger.new(STDOUT)
 log.level = config[:verbose] ? "DEBUG" : "INFO"
 log.formatter = lambda do |s, d, p, m|
@@ -68,13 +73,10 @@ log.formatter = lambda do |s, d, p, m|
 end
 config[:logger] = log
 
-if config[:verbose]
-  PP.pp(config, STDERR)
-end
 
 if !config[:listen]
-  STDERR.puts "Rendering block #{config[:name]}" if config[:verbose]
-  br = NetConfGen::BlockEngine.new(config[:root])
+  STDERR.puts "Rendering block #{config[:name]} from #{config[:root]}" if config[:verbose]
+  br = NetConfGen::BlockEngine.new(config[:root], config[:settings])
 
   config[:variables].each do |k, v|
     br.set(k, v)
